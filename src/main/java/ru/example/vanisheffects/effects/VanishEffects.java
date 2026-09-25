@@ -57,7 +57,7 @@ public class VanishEffects {
                         world.spawnParticle(Particle.LAVA, particleLoc, 1, 0, 0, 0, 0);
                     }
                 }
-                world.spawnParticle(Particle.LARGE_SMOKE, base.clone().add(0, height, 0), 2, 0.3, 0.2, 0.3, 0.01);
+                world.spawnParticle(Particle.SMOKE_LARGE, base.clone().add(0, height, 0), 2, 0.3, 0.2, 0.3, 0.01);
 
                 ticks++;
             }
@@ -99,7 +99,7 @@ public class VanishEffects {
                     double y = 1 + Math.sin(ticks * 0.5 + i) * 0.9 + t * 1.5;
                     Location wingLoc = base.clone().add(x, y, z);
                     world.spawnParticle(Particle.ASH, wingLoc, 2, 0.1, 0.1, 0.1, 0.001);
-                    world.spawnParticle(Particle.SMOKE, wingLoc, 1, 0, 0, 0, 0);
+                    world.spawnParticle(Particle.SMOKE_NORMAL, wingLoc, 1, 0, 0, 0, 0);
                 }
 
                 ticks++;
