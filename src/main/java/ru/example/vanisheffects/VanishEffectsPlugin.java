@@ -187,7 +187,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
             showToOthers(player);
             World world = player.getWorld();
             Location loc = player.getLocation().add(0, 1, 0);
-            world.spawnParticle(Particle.POOF, loc, 40, 0.5, 0.8, 0.5, 0.02);
+            world.spawnParticle(Particle.EXPLOSION_NORMAL, loc, 40, 0.5, 0.8, 0.5, 0.02);
             world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
         }
     }
@@ -226,7 +226,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         World world = player.getWorld();
         Location loc = player.getLocation().add(0, 1, 0);
         world.spawnParticle(Particle.FLAME, loc, 80, 0.6, 1.0, 0.6, 0.05);
-        world.spawnParticle(Particle.LARGE_SMOKE, loc, 40, 0.5, 1.0, 0.5, 0.03);
+        world.spawnParticle(Particle.SMOKE_LARGE, loc, 40, 0.5, 1.0, 0.5, 0.03);
         world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 1.0f, 1.0f);
         world.playSound(loc, Sound.ITEM_FIRECHARGE_USE, 1.0f, 0.8f);
     }
@@ -244,7 +244,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         World world = player.getWorld();
         Location center = player.getLocation().add(0, 1, 0);
 
-        world.spawnParticle(Particle.POOF, center, 20, 0.4, 0.6, 0.4, 0.02);
+        world.spawnParticle(Particle.EXPLOSION_NORMAL, center, 20, 0.4, 0.6, 0.4, 0.02);
         world.playSound(center, Sound.ENTITY_BAT_TAKEOFF, 1.0f, 0.8f);
         world.playSound(center, Sound.ENTITY_BAT_AMBIENT, 1.0f, 1.0f);
 
@@ -280,7 +280,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 if (tick >= BAT_SWARM_TICKS) {
                     for (Bat bat : bats) {
                         if (bat.isValid()) {
-                            bat.getWorld().spawnParticle(Particle.POOF, bat.getLocation(), 5, 0.1, 0.1, 0.1, 0.01);
+                            bat.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, bat.getLocation(), 5, 0.1, 0.1, 0.1, 0.01);
                             bat.remove();
                         }
                     }
