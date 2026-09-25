@@ -248,16 +248,32 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
 
     private void playFireEffect(Player player) {
         World world = player.getWorld();
-        Location loc = player.getLocation().add(0, 1, 0);
-        world.spawnParticle(Particle.FLAME, loc, 60, 0.5, 0.9, 0.5, 0.04);
-        world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+        Location initialLoc = player.getLocation().add(0, 1, 0);
+        world.playSound(initialLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+
+        JavaPlugin plugin = this;
+        new BukkitRunnable() {
+            int tick = 0;
+            final int totalTicks = 6;
+
+            @Override
+            public void run() {
+                if (tick >= totalTicks || !player.isOnline()) {
+                    cancel();
+                    return;
+                }
+                Location loc = player.getLocation().add(0, 1, 0);
+                world.spawnParticle(Particle.FLAME, loc, 15, 0.5, 0.9, 0.5, 0.04);
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void playLightningEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation();
         world.strikeLightningEffect(loc);
-        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 180, 1.2, 1.7, 1.2, 0.12);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 200, 1.2, 1.7, 1.2, 0.12);
         world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
 
         int extraStrikes = 8;
@@ -272,15 +288,15 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                     return;
                 }
                 double angle = 2 * Math.PI * i / extraStrikes;
-                double radius = 1.4 + RANDOM.nextDouble() * 1.8;
+                double radius = 1.8 + RANDOM.nextDouble() * 2.2;
                 double x = loc.getX() + radius * Math.cos(angle);
                 double z = loc.getZ() + radius * Math.sin(angle);
                 Location strikeLoc = new Location(world, x, loc.getY(), z);
                 world.strikeLightningEffect(strikeLoc);
-                world.spawnParticle(Particle.ELECTRIC_SPARK, strikeLoc.clone().add(0, 1, 0), 40, 0.4, 0.6, 0.4, 0.05);
+                world.spawnParticle(Particle.ELECTRIC_SPARK, strikeLoc.clone().add(0, 1, 0), 50, 0.5, 0.7, 0.5, 0.05);
                 i++;
             }
-        }.runTaskTimer(plugin, 2L, 2L);
+        }.runTaskTimer(plugin, 3L, 3L);
     }
 
     /** Стая летучих мышей поднимается вокруг игрока, кружит, а затем красиво разлетается в разные стороны. */
@@ -298,7 +314,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
             double radius = 0.8 + RANDOM.nextDouble() * 0.6;
             double x = center.getX() + radius * Math.cos(angle);
             double z = center.getZ() + radius * Math.sin(angle);
-            double y = center.getY() + RANDOM.nextDouble() * 1.2;
+            double y = center.getY() + (RANDOM.nextDouble() - 0.5) * 0.4;
 
             Bat bat = world.spawn(new Location(world, x, y, z), Bat.class);
             bat.setAwake(true);
@@ -332,11 +348,13 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                         Bat bat = bats.get(i);
                         if (!bat.isValid()) continue;
                         bat.setVelocity(flyDirections.get(i).clone().multiply(speed));
+                        bat.getWorld().spawnParticle(Particle.PORTAL, bat.getLocation(), 2, 0.05, 0.05, 0.05, 0.01);
                     }
                 }
                 if (tick >= BAT_CIRCLE_TICKS + BAT_FLYAWAY_TICKS) {
                     for (Bat bat : bats) {
                         if (bat.isValid()) {
+                            bat.getWorld().spawnParticle(Particle.PORTAL, bat.getLocation(), 12, 0.15, 0.15, 0.15, 0.05);
                             bat.remove();
                         }
                     }
