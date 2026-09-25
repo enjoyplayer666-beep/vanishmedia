@@ -38,7 +38,7 @@ import java.util.UUID;
 public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, TabCompleter, Listener {
 
     private static final Random RANDOM = new Random();
-    private static final int BAT_COUNT = 14;
+    private static final int BAT_COUNT = 28;
     private static final int BAT_SWARM_TICKS = 16;
 
     private enum Style {
@@ -143,10 +143,9 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         return "" + org.bukkit.ChatColor.LIGHT_PURPLE + "⚑ " +
                 org.bukkit.ChatColor.LIGHT_PURPLE + org.bukkit.ChatColor.BOLD + "Невидимость " +
                 org.bukkit.ChatColor.GRAY + "· " +
-                org.bukkit.ChatColor.LIGHT_PURPLE + org.bukkit.ChatColor.BOLD + "Невидимость " +
                 statusColor + status + " " +
                 org.bukkit.ChatColor.GRAY + "для " +
-                org.bukkit.ChatColor.WHITE + playerName;
+                org.bukkit.ChatColor.GRAY + playerName;
     }
 
     @Override
@@ -204,6 +203,15 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         if (vanished.remove(id)) {
             showToOthers(player);
             player.removePotionEffect(PotionEffectType.INVISIBILITY);
+
+            Style style = lastStyle.get(id);
+            if (style == Style.FIRE) {
+                playFireEffect(player);
+            } else if (style == Style.LIGHTNING) {
+                playLightningEffect(player);
+            } else if (style == Style.BATS) {
+                playBatsEffect(player);
+            }
         }
     }
 
@@ -241,8 +249,6 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         World world = player.getWorld();
         Location loc = player.getLocation().add(0, 1, 0);
         world.spawnParticle(Particle.FLAME, loc, 30, 0.4, 0.7, 0.4, 0.03);
-        world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 1.0f, 1.0f);
-        world.playSound(loc, Sound.ITEM_FIRECHARGE_USE, 1.0f, 0.8f);
         world.playSound(loc, Sound.ENTITY_ENDER_PEARL_THROW, 1.0f, 1.0f);
     }
 
@@ -253,12 +259,12 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         int extraStrikes = 8;
         for (int i = 0; i < extraStrikes; i++) {
             double angle = 2 * Math.PI * i / extraStrikes;
-            double radius = 0.6 + RANDOM.nextDouble() * 0.8;
+            double radius = 1.2 + RANDOM.nextDouble() * 1.6;
             double x = loc.getX() + radius * Math.cos(angle);
             double z = loc.getZ() + radius * Math.sin(angle);
             world.strikeLightningEffect(new Location(world, x, loc.getY(), z));
         }
-        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 120, 0.7, 1.2, 0.7, 0.08);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 160, 1.0, 1.5, 1.0, 0.1);
         world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
     }
 
