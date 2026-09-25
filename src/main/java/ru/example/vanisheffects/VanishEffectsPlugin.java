@@ -204,9 +204,6 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         if (vanished.remove(id)) {
             showToOthers(player);
             player.removePotionEffect(PotionEffectType.INVISIBILITY);
-            World world = player.getWorld();
-            Location loc = player.getLocation().add(0, 1, 0);
-            world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
         }
     }
 
@@ -244,18 +241,23 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         World world = player.getWorld();
         Location loc = player.getLocation().add(0, 1, 0);
         world.spawnParticle(Particle.FLAME, loc, 30, 0.4, 0.7, 0.4, 0.03);
-        world.spawnParticle(Particle.SMOKE_LARGE, loc, 15, 0.35, 0.7, 0.35, 0.02);
         world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 1.0f, 1.0f);
         world.playSound(loc, Sound.ITEM_FIRECHARGE_USE, 1.0f, 0.8f);
-        world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
+        world.playSound(loc, Sound.ENTITY_ENDER_PEARL_THROW, 1.0f, 1.0f);
     }
 
     private void playLightningEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation();
         world.strikeLightningEffect(loc);
-        world.strikeLightningEffect(loc.clone().add(0.7, 0, 0.4));
-        world.strikeLightningEffect(loc.clone().add(-0.7, 0, -0.4));
+        int extraStrikes = 8;
+        for (int i = 0; i < extraStrikes; i++) {
+            double angle = 2 * Math.PI * i / extraStrikes;
+            double radius = 0.6 + RANDOM.nextDouble() * 0.8;
+            double x = loc.getX() + radius * Math.cos(angle);
+            double z = loc.getZ() + radius * Math.sin(angle);
+            world.strikeLightningEffect(new Location(world, x, loc.getY(), z));
+        }
         world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 120, 0.7, 1.2, 0.7, 0.08);
         world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
     }
