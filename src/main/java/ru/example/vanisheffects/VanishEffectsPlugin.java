@@ -119,17 +119,31 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
 
         if (style != null) {
             enable(target, style);
-            sender.sendMessage("§a" + (self ? "Вы исчезли" : target.getName() + " исчез(ла)")
-                    + " со стилем §f" + style.displayName + "§a.");
+            sender.sendMessage(vanishStatusMessage(true, target.getName()));
         } else {
             boolean nowVanished = toggle(target);
-            String who = self ? "Вы" : target.getName();
-            sender.sendMessage(nowVanished
-                    ? "§a" + who + (self ? " исчезли" : " исчез(ла)") + "."
-                    : "§a" + who + (self ? " снова видимы" : " снова видим(а)") + ".");
+            sender.sendMessage(vanishStatusMessage(nowVanished, target.getName()));
         }
 
         return true;
+    }
+
+    /**
+     * Сообщение о статусе невидимости в формате:
+     * "⚑ Невидимость · Невидимость Включено/Отключено для <игрок>"
+     * (без пояснительной средней строки).
+     */
+    private String vanishStatusMessage(boolean enabled, String playerName) {
+        org.bukkit.ChatColor statusColor = enabled ? org.bukkit.ChatColor.GREEN : org.bukkit.ChatColor.RED;
+        String status = enabled ? "Включено" : "Отключено";
+
+        return "" + org.bukkit.ChatColor.LIGHT_PURPLE + "⚑ " +
+                org.bukkit.ChatColor.LIGHT_PURPLE + org.bukkit.ChatColor.BOLD + "Невидимость " +
+                org.bukkit.ChatColor.GRAY + "· " +
+                org.bukkit.ChatColor.LIGHT_PURPLE + org.bukkit.ChatColor.BOLD + "Невидимость " +
+                statusColor + status + " " +
+                org.bukkit.ChatColor.GRAY + "для " +
+                org.bukkit.ChatColor.WHITE + playerName;
     }
 
     @Override
