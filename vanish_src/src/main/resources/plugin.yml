@@ -1,0 +1,23 @@
+name: VanishEffects
+version: 1.1.0
+main: ru.example.vanisheffects.VanishEffectsPlugin
+api-version: 1.20
+author: Claude
+description: Ваниш с тремя визуальными эффектами исчезновения — огонь, летучие мыши, молнии
+
+commands:
+  v:
+    description: Включить/выключить ваниш, либо задать стиль эффекта
+    usage: "/v [fire|bats|lightning] [игрок]"
+    permission: vanisheffects.use
+
+permissions:
+  vanisheffects.use:
+    description: Позволяет использовать команду /v на себе
+    default: true
+  vanisheffects.others:
+    description: Позволяет применять /v к другим игрокам
+    default: op
+  vanisheffects.see:
+    description: Позволяет видеть игроков в ваниш-режиме
+    default: op
