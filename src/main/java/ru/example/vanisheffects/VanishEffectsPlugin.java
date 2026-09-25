@@ -14,6 +14,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -68,6 +70,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
             Player p = getServer().getPlayer(id);
             if (p != null) {
                 showToOthers(p);
+                p.removePotionEffect(PotionEffectType.INVISIBILITY);
             }
         }
         vanished.clear();
@@ -193,15 +196,16 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         if (!wasVanished) {
             hideFromOthers(player);
         }
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false, false));
     }
 
     private void disable(Player player) {
         UUID id = player.getUniqueId();
         if (vanished.remove(id)) {
             showToOthers(player);
+            player.removePotionEffect(PotionEffectType.INVISIBILITY);
             World world = player.getWorld();
             Location loc = player.getLocation().add(0, 1, 0);
-            world.spawnParticle(Particle.EXPLOSION_NORMAL, loc, 40, 0.5, 0.8, 0.5, 0.02);
             world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
         }
     }
@@ -239,17 +243,20 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
     private void playFireEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation().add(0, 1, 0);
-        world.spawnParticle(Particle.FLAME, loc, 80, 0.6, 1.0, 0.6, 0.05);
-        world.spawnParticle(Particle.SMOKE_LARGE, loc, 40, 0.5, 1.0, 0.5, 0.03);
+        world.spawnParticle(Particle.FLAME, loc, 30, 0.4, 0.7, 0.4, 0.03);
+        world.spawnParticle(Particle.SMOKE_LARGE, loc, 15, 0.35, 0.7, 0.35, 0.02);
         world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 1.0f, 1.0f);
         world.playSound(loc, Sound.ITEM_FIRECHARGE_USE, 1.0f, 0.8f);
+        world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
     }
 
     private void playLightningEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation();
         world.strikeLightningEffect(loc);
-        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 60, 0.6, 1.0, 0.6, 0.05);
+        world.strikeLightningEffect(loc.clone().add(0.7, 0, 0.4));
+        world.strikeLightningEffect(loc.clone().add(-0.7, 0, -0.4));
+        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 120, 0.7, 1.2, 0.7, 0.08);
         world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
     }
 
@@ -258,7 +265,6 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         World world = player.getWorld();
         Location center = player.getLocation().add(0, 1, 0);
 
-        world.spawnParticle(Particle.EXPLOSION_NORMAL, center, 20, 0.4, 0.6, 0.4, 0.02);
         world.playSound(center, Sound.ENTITY_BAT_TAKEOFF, 1.0f, 0.8f);
         world.playSound(center, Sound.ENTITY_BAT_AMBIENT, 1.0f, 1.0f);
 
@@ -294,7 +300,6 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 if (tick >= BAT_SWARM_TICKS) {
                     for (Bat bat : bats) {
                         if (bat.isValid()) {
-                            bat.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, bat.getLocation(), 5, 0.1, 0.1, 0.1, 0.01);
                             bat.remove();
                         }
                     }
