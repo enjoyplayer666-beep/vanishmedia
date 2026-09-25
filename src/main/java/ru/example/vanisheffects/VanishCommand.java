@@ -63,15 +63,15 @@ public class VanishCommand implements CommandExecutor, TabCompleter {
         switch (effect) {
             case "fire":
                 startVanish(sender, target, "огонь", () ->
-                        VanishEffects.playFireEffect(plugin, target, () -> vanishManager.vanish(target)));
+                        VanishEffects.playFireEffect(plugin, target, () -> onVanished(sender, target)));
                 break;
             case "bats":
                 startVanish(sender, target, "летучие мыши", () ->
-                        VanishEffects.playBatsEffect(plugin, target, () -> vanishManager.vanish(target)));
+                        VanishEffects.playBatsEffect(plugin, target, () -> onVanished(sender, target)));
                 break;
             case "lightning":
                 startVanish(sender, target, "молнии", () ->
-                        VanishEffects.playLightningEffect(plugin, target, () -> vanishManager.vanish(target)));
+                        VanishEffects.playLightningEffect(plugin, target, () -> onVanished(sender, target)));
                 break;
             case "show":
             case "off":
@@ -80,7 +80,7 @@ public class VanishCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 vanishManager.show(target);
-                sender.sendMessage(ChatColor.GREEN + target.getName() + " снова виден.");
+                sender.sendMessage(vanishStatusMessage(false, target.getName()));
                 break;
             default:
                 sender.sendMessage(ChatColor.RED + "Неизвестный эффект. Доступно: fire, bats, lightning, show");
@@ -96,6 +96,30 @@ public class VanishCommand implements CommandExecutor, TabCompleter {
         }
         sender.sendMessage(ChatColor.GREEN + "Запускаю эффект \"" + effectName + "\" для " + target.getName() + "...");
         action.run();
+    }
+
+    /** Вызывается, когда игрок реально стал невидимым (после проигрывания эффекта). */
+    private void onVanished(CommandSender sender, Player target) {
+        vanishManager.vanish(target);
+        sender.sendMessage(vanishStatusMessage(true, target.getName()));
+    }
+
+    /**
+     * Сообщение о статусе невидимости в формате:
+     * "⚑ Невидимость · Невидимость Включено/Отключено для <игрок>"
+     * (без пояснительной средней строки).
+     */
+    private String vanishStatusMessage(boolean enabled, String playerName) {
+        ChatColor statusColor = enabled ? ChatColor.GREEN : ChatColor.RED;
+        String status = enabled ? "Включено" : "Отключено";
+
+        return "" + ChatColor.LIGHT_PURPLE + "⚑ " +
+                ChatColor.LIGHT_PURPLE + ChatColor.BOLD + "Невидимость " +
+                ChatColor.GRAY + "· " +
+                ChatColor.LIGHT_PURPLE + ChatColor.BOLD + "Невидимость " +
+                statusColor + status + " " +
+                ChatColor.GRAY + "для " +
+                ChatColor.WHITE + playerName;
     }
 
     @Override
