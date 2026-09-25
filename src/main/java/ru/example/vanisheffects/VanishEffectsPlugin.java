@@ -38,8 +38,9 @@ import java.util.UUID;
 public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, TabCompleter, Listener {
 
     private static final Random RANDOM = new Random();
-    private static final int BAT_COUNT = 28;
-    private static final int BAT_SWARM_TICKS = 16;
+    private static final int BAT_COUNT = 38;
+    private static final int BAT_CIRCLE_TICKS = 16;
+    private static final int BAT_FLYAWAY_TICKS = 22;
 
     private enum Style {
         FIRE("Огонь"), BATS("Летучие мыши"), LIGHTNING("Молния");
@@ -248,27 +249,41 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
     private void playFireEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation().add(0, 1, 0);
-        world.spawnParticle(Particle.FLAME, loc, 30, 0.4, 0.7, 0.4, 0.03);
-        world.playSound(loc, Sound.ENTITY_ENDER_PEARL_THROW, 1.0f, 1.0f);
+        world.spawnParticle(Particle.FLAME, loc, 60, 0.5, 0.9, 0.5, 0.04);
+        world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
     }
 
     private void playLightningEffect(Player player) {
         World world = player.getWorld();
         Location loc = player.getLocation();
         world.strikeLightningEffect(loc);
-        int extraStrikes = 8;
-        for (int i = 0; i < extraStrikes; i++) {
-            double angle = 2 * Math.PI * i / extraStrikes;
-            double radius = 1.2 + RANDOM.nextDouble() * 1.6;
-            double x = loc.getX() + radius * Math.cos(angle);
-            double z = loc.getZ() + radius * Math.sin(angle);
-            world.strikeLightningEffect(new Location(world, x, loc.getY(), z));
-        }
-        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 160, 1.0, 1.5, 1.0, 0.1);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, loc.clone().add(0, 1, 0), 180, 1.2, 1.7, 1.2, 0.12);
         world.playSound(loc, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1.0f, 1.0f);
+
+        int extraStrikes = 8;
+        JavaPlugin plugin = this;
+        new BukkitRunnable() {
+            int i = 0;
+
+            @Override
+            public void run() {
+                if (i >= extraStrikes) {
+                    cancel();
+                    return;
+                }
+                double angle = 2 * Math.PI * i / extraStrikes;
+                double radius = 1.4 + RANDOM.nextDouble() * 1.8;
+                double x = loc.getX() + radius * Math.cos(angle);
+                double z = loc.getZ() + radius * Math.sin(angle);
+                Location strikeLoc = new Location(world, x, loc.getY(), z);
+                world.strikeLightningEffect(strikeLoc);
+                world.spawnParticle(Particle.ELECTRIC_SPARK, strikeLoc.clone().add(0, 1, 0), 40, 0.4, 0.6, 0.4, 0.05);
+                i++;
+            }
+        }.runTaskTimer(plugin, 2L, 2L);
     }
 
-    /** Стая летучих мышей поднимается вокруг игрока, кружит и разлетается в момент исчезновения. */
+    /** Стая летучих мышей поднимается вокруг игрока, кружит, а затем красиво разлетается в разные стороны. */
     private void playBatsEffect(Player player) {
         World world = player.getWorld();
         Location center = player.getLocation().add(0, 1, 0);
@@ -277,6 +292,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         world.playSound(center, Sound.ENTITY_BAT_AMBIENT, 1.0f, 1.0f);
 
         List<Bat> bats = new ArrayList<>();
+        List<Vector> flyDirections = new ArrayList<>();
         for (int i = 0; i < BAT_COUNT; i++) {
             double angle = 2 * Math.PI * i / BAT_COUNT;
             double radius = 0.8 + RANDOM.nextDouble() * 0.6;
@@ -288,6 +304,9 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
             bat.setAwake(true);
             bat.setCustomNameVisible(false);
             bats.add(bat);
+
+            double flyAngle = angle + (RANDOM.nextDouble() - 0.5) * 0.6;
+            flyDirections.add(new Vector(Math.cos(flyAngle), 0.3 + RANDOM.nextDouble() * 0.3, Math.sin(flyAngle)));
         }
 
         JavaPlugin plugin = this;
@@ -297,15 +316,25 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
             @Override
             public void run() {
                 tick++;
-                for (Bat bat : bats) {
-                    if (!bat.isValid()) continue;
-                    Vector outward = bat.getLocation().toVector().subtract(center.toVector());
-                    if (outward.lengthSquared() < 1.0E-4) {
-                        outward = new Vector(RANDOM.nextDouble() - 0.5, 0, RANDOM.nextDouble() - 0.5);
+                if (tick <= BAT_CIRCLE_TICKS) {
+                    for (Bat bat : bats) {
+                        if (!bat.isValid()) continue;
+                        Vector outward = bat.getLocation().toVector().subtract(center.toVector());
+                        if (outward.lengthSquared() < 1.0E-4) {
+                            outward = new Vector(RANDOM.nextDouble() - 0.5, 0, RANDOM.nextDouble() - 0.5);
+                        }
+                        bat.setVelocity(outward.normalize().multiply(0.15).add(new Vector(0, 0.08, 0)));
                     }
-                    bat.setVelocity(outward.normalize().multiply(0.15).add(new Vector(0, 0.08, 0)));
+                } else {
+                    double progress = (double) (tick - BAT_CIRCLE_TICKS) / BAT_FLYAWAY_TICKS;
+                    double speed = 0.25 + progress * 0.55;
+                    for (int i = 0; i < bats.size(); i++) {
+                        Bat bat = bats.get(i);
+                        if (!bat.isValid()) continue;
+                        bat.setVelocity(flyDirections.get(i).clone().multiply(speed));
+                    }
                 }
-                if (tick >= BAT_SWARM_TICKS) {
+                if (tick >= BAT_CIRCLE_TICKS + BAT_FLYAWAY_TICKS) {
                     for (Bat bat : bats) {
                         if (bat.isValid()) {
                             bat.remove();
