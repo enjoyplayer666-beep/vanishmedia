@@ -43,7 +43,8 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
     private static final int BAT_FLYAWAY_TICKS = 22;
 
     private enum Style {
-        FIRE("Огонь"), BATS("Летучие мыши"), LIGHTNING("Молния");
+        FIRE("Огонь"), BATS("Летучие мыши"), LIGHTNING("Молния"), STARFALL("Звездопад"),
+        FROST("Иней"), SOUL("Душа"), VORTEX("Вихрь");
 
         final String displayName;
 
@@ -152,7 +153,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("fire", "bats", "lightning");
+            return Arrays.asList("fire", "bats", "lightning", "starfall", "frost", "soul", "vortex");
         }
         if (args.length == 2 && sender.hasPermission("vanisheffects.others")) {
             List<String> names = new ArrayList<>();
@@ -212,6 +213,14 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 playLightningEffect(player);
             } else if (style == Style.BATS) {
                 playBatsEffect(player);
+            } else if (style == Style.STARFALL) {
+                playStarfallEffect(player);
+            } else if (style == Style.FROST) {
+                playFrostEffect(player);
+            } else if (style == Style.SOUL) {
+                playSoulEffect(player);
+            } else if (style == Style.VORTEX) {
+                playVortexEffect(player);
             }
         }
     }
@@ -242,6 +251,18 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 break;
             case LIGHTNING:
                 playLightningEffect(player);
+                break;
+            case STARFALL:
+                playStarfallEffect(player);
+                break;
+            case FROST:
+                playFrostEffect(player);
+                break;
+            case SOUL:
+                playSoulEffect(player);
+                break;
+            case VORTEX:
+                playVortexEffect(player);
                 break;
         }
     }
@@ -360,6 +381,142 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                     }
                     cancel();
                 }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /** Светящийся метеор падает с неба на игрока и в момент удара взрывается фейерверком из искр. */
+    private void playStarfallEffect(Player player) {
+        World world = player.getWorld();
+        Location target = player.getLocation().add(0, 1, 0);
+        Location start = target.clone().add(0, 14, 0);
+        Vector path = target.clone().subtract(start).toVector();
+
+        world.playSound(target, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.0f, 0.8f);
+
+        JavaPlugin plugin = this;
+        new BukkitRunnable() {
+            int tick = 0;
+            final int totalTicks = 12;
+
+            @Override
+            public void run() {
+                if (tick > totalTicks) {
+                    cancel();
+                    return;
+                }
+                double progress = (double) tick / totalTicks;
+                Location current = start.clone().add(path.clone().multiply(progress));
+                world.spawnParticle(Particle.END_ROD, current, 4, 0.08, 0.08, 0.08, 0.01);
+                world.spawnParticle(Particle.FLAME, current, 2, 0.05, 0.05, 0.05, 0.01);
+
+                if (tick == totalTicks) {
+                    world.spawnParticle(Particle.FIREWORKS_SPARK, target, 90, 0.6, 0.8, 0.6, 0.18);
+                    world.spawnParticle(Particle.END_ROD, target, 40, 0.5, 0.6, 0.5, 0.05);
+                    world.playSound(target, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.1f);
+                    world.playSound(target, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
+                }
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /** Игрока за долю секунды затягивает инеем, после чего ледяная корка со звоном разлетается вдребезги. */
+    private void playFrostEffect(Player player) {
+        World world = player.getWorld();
+        Location center = player.getLocation().add(0, 1, 0);
+        world.playSound(center, Sound.ENTITY_PLAYER_HURT_FREEZE, 1.0f, 0.8f);
+
+        JavaPlugin plugin = this;
+        new BukkitRunnable() {
+            int tick = 0;
+            final int totalTicks = 5;
+
+            @Override
+            public void run() {
+                if (tick > totalTicks) {
+                    world.playSound(center, Sound.BLOCK_GLASS_BREAK, 1.0f, 0.9f);
+                    world.spawnParticle(Particle.SNOWFLAKE, center, 100, 0.6, 1.0, 0.6, 0.15);
+                    world.spawnParticle(Particle.ITEM_SNOWBALL, center, 30, 0.5, 0.9, 0.5, 0.08);
+                    cancel();
+                    return;
+                }
+                double radius = 0.3 + tick * 0.25;
+                for (int i = 0; i < 10; i++) {
+                    double angle = 2 * Math.PI * i / 10;
+                    double x = center.getX() + radius * Math.cos(angle);
+                    double z = center.getZ() + radius * Math.sin(angle);
+                    world.spawnParticle(Particle.SNOWFLAKE, new Location(world, x, center.getY(), z), 2, 0.02, 0.05, 0.02, 0.01);
+                }
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    /** Тёмная спираль из частиц душ поднимается вокруг игрока и завершается тихим потусторонним всплеском. */
+    private void playSoulEffect(Player player) {
+        World world = player.getWorld();
+        Location base = player.getLocation();
+        world.playSound(base, Sound.ENTITY_EVOKER_CAST_SPELL, 1.0f, 0.6f);
+
+        JavaPlugin plugin = this;
+        new BukkitRunnable() {
+            int tick = 0;
+            final int totalTicks = 14;
+
+            @Override
+            public void run() {
+                if (tick > totalTicks) {
+                    world.spawnParticle(Particle.SOUL, base.clone().add(0, 1, 0), 60, 0.4, 0.6, 0.4, 0.1);
+                    world.playSound(base, Sound.BLOCK_SOUL_SAND_BREAK, 1.0f, 0.7f);
+                    cancel();
+                    return;
+                }
+                double angle = tick * 0.9;
+                double height = tick * 0.15;
+                double radius = 0.5;
+                double x1 = base.getX() + radius * Math.cos(angle);
+                double z1 = base.getZ() + radius * Math.sin(angle);
+                double x2 = base.getX() - radius * Math.cos(angle);
+                double z2 = base.getZ() - radius * Math.sin(angle);
+                world.spawnParticle(Particle.SOUL_FIRE_FLAME, new Location(world, x1, base.getY() + height, z1), 2, 0.02, 0.02, 0.02, 0.01);
+                world.spawnParticle(Particle.SOUL, new Location(world, x2, base.getY() + height, z2), 2, 0.02, 0.02, 0.02, 0.01);
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /** Вокруг игрока закручивается портальный вихрь из двух спиральных рукавов, который стягивается внутрь и лопается. */
+    private void playVortexEffect(Player player) {
+        World world = player.getWorld();
+        Location base = player.getLocation().add(0, 1, 0);
+        world.playSound(base, Sound.BLOCK_PORTAL_TRAVEL, 1.0f, 0.8f);
+
+        JavaPlugin plugin = this;
+        new BukkitRunnable() {
+            int tick = 0;
+            final int totalTicks = 16;
+
+            @Override
+            public void run() {
+                if (tick > totalTicks) {
+                    world.spawnParticle(Particle.PORTAL, base, 80, 0.4, 0.6, 0.4, 0.3);
+                    world.spawnParticle(Particle.REVERSE_PORTAL, base, 40, 0.3, 0.5, 0.3, 0.05);
+                    world.playSound(base, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1.0f, 1.0f);
+                    cancel();
+                    return;
+                }
+                double progress = (double) tick / totalTicks;
+                double radius = 1.2 * (1 - progress) + 0.1;
+                double angle = tick * 0.8;
+                double height = progress * 1.6;
+                for (int arm = 0; arm < 2; arm++) {
+                    double a = angle + arm * Math.PI;
+                    double x = base.getX() + radius * Math.cos(a);
+                    double z = base.getZ() + radius * Math.sin(a);
+                    world.spawnParticle(Particle.PORTAL, new Location(world, x, base.getY() + height, z), 3, 0.03, 0.05, 0.03, 0.02);
+                }
+                tick++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
