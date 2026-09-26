@@ -1,6 +1,8 @@
 package ru.example.vanisheffects;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -12,7 +14,12 @@ import org.bukkit.entity.Bat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -33,7 +40,8 @@ import java.util.UUID;
  * VanishEffects — весь плагин в одном файле, чтобы не было путаницы с несколькими классами.
  *
  * /v                    — включить/выключить ваниш (со стилем, который использовался последним)
- * /v fire|bats|lightning [игрок] — включить ваниш с конкретным стилем (или сменить стиль на лету)
+ * /v menu                — открыть меню выбора стиля (GUI)
+ * /v fire|bats|lightning|starfall|frost|soul|ascension [игрок] — включить ваниш с конкретным стилем
  */
 public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, TabCompleter, Listener {
 
@@ -44,7 +52,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
 
     private enum Style {
         FIRE("Огонь"), BATS("Летучие мыши"), LIGHTNING("Молния"), STARFALL("Звездопад"),
-        FROST("Иней"), SOUL("Душа"), VORTEX("Вихрь");
+        FROST("Иней"), SOUL("Душа"), ASCENSION("Вознесение");
 
         final String displayName;
 
@@ -94,6 +102,20 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("menu")) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("§cМеню доступно только игрокам.");
+                return true;
+            }
+            Player menuPlayer = (Player) sender;
+            if (!menuPlayer.hasPermission("vanisheffects.use")) {
+                sender.sendMessage("§cУ вас нет прав на использование ваниша.");
+                return true;
+            }
+            openStyleMenu(menuPlayer);
+            return true;
+        }
+
         Style style = args.length >= 1 ? parseStyle(args[0]) : null;
         String targetName = args.length >= 2 ? args[1] : null;
 
@@ -150,10 +172,163 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 org.bukkit.ChatColor.GRAY + playerName;
     }
 
+    // ================= Меню выбора стиля =================
+
+    /** Маркер-холдер, чтобы отличать инвентарь меню ваниша от любых других открытых инвентарей. */
+    private static class VanishMenuHolder implements InventoryHolder {
+        private Inventory inventory;
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
+
+        private void setInventory(Inventory inventory) {
+            this.inventory = inventory;
+        }
+    }
+
+    private void openStyleMenu(Player player) {
+        VanishMenuHolder holder = new VanishMenuHolder();
+        Inventory menu = Bukkit.createInventory(holder, 9, gradient("Стиль ваниша", "B784FF", "5A2EDB", true, true));
+        holder.setInventory(menu);
+
+        Style[] styles = Style.values();
+        for (int slot = 0; slot < styles.length; slot++) {
+            Style style = styles[slot];
+            ItemStack icon = new ItemStack(styleIcon(style));
+            ItemMeta meta = icon.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(gradient(style.displayName, styleGradientStart(style), styleGradientEnd(style), true, true));
+                meta.setLore(Arrays.asList(org.bukkit.ChatColor.GRAY + "Нажми, чтобы включить"));
+                icon.setItemMeta(meta);
+            }
+            menu.setItem(slot, icon);
+        }
+
+        player.openInventory(menu);
+    }
+
+    @EventHandler
+    public void onMenuClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof VanishMenuHolder)) {
+            return;
+        }
+        event.setCancelled(true);
+
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+
+        int slot = event.getRawSlot();
+        Style[] styles = Style.values();
+        if (slot < 0 || slot >= styles.length) {
+            return;
+        }
+
+        Style style = styles[slot];
+        player.closeInventory();
+        enable(player, style);
+        player.sendMessage(vanishStatusMessage(true, player.getName()));
+    }
+
+    private Material styleIcon(Style style) {
+        switch (style) {
+            case FIRE:
+                return Material.FIRE_CHARGE;
+            case BATS:
+                return Material.BAT_SPAWN_EGG;
+            case LIGHTNING:
+                return Material.LIGHTNING_ROD;
+            case STARFALL:
+                return Material.FIREWORK_ROCKET;
+            case FROST:
+                return Material.BLUE_ICE;
+            case SOUL:
+                return Material.SOUL_LANTERN;
+            case ASCENSION:
+                return Material.DRAGON_HEAD;
+            default:
+                return Material.NETHER_STAR;
+        }
+    }
+
+    private String styleGradientStart(Style style) {
+        switch (style) {
+            case FIRE:
+                return "FFB000";
+            case BATS:
+                return "6A11CB";
+            case LIGHTNING:
+                return "FDE910";
+            case STARFALL:
+                return "FFD700";
+            case FROST:
+                return "00E5FF";
+            case SOUL:
+                return "1CD3D3";
+            case ASCENSION:
+                return "8E2DE2";
+            default:
+                return "FFFFFF";
+        }
+    }
+
+    private String styleGradientEnd(Style style) {
+        switch (style) {
+            case FIRE:
+                return "FF1E1E";
+            case BATS:
+                return "120024";
+            case LIGHTNING:
+                return "00B4FF";
+            case STARFALL:
+                return "FFFFFF";
+            case FROST:
+                return "FFFFFF";
+            case SOUL:
+                return "072B3D";
+            case ASCENSION:
+                return "FF00C8";
+            default:
+                return "AAAAAA";
+        }
+    }
+
+    /** Красит текст по буквам плавным градиентом между двумя hex-цветами, с жирным и курсивом на каждой букве. */
+    private static String gradient(String text, String startHex, String endHex, boolean bold, boolean italic) {
+        int length = text.length();
+        int r1 = Integer.parseInt(startHex.substring(0, 2), 16);
+        int g1 = Integer.parseInt(startHex.substring(2, 4), 16);
+        int b1 = Integer.parseInt(startHex.substring(4, 6), 16);
+        int r2 = Integer.parseInt(endHex.substring(0, 2), 16);
+        int g2 = Integer.parseInt(endHex.substring(2, 4), 16);
+        int b2 = Integer.parseInt(endHex.substring(4, 6), 16);
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            double t = length == 1 ? 0 : (double) i / (length - 1);
+            int r = (int) Math.round(r1 + (r2 - r1) * t);
+            int g = (int) Math.round(g1 + (g2 - g1) * t);
+            int b = (int) Math.round(b1 + (b2 - b1) * t);
+
+            result.append(org.bukkit.ChatColor.of(new java.awt.Color(r, g, b)));
+            if (bold) {
+                result.append(org.bukkit.ChatColor.BOLD);
+            }
+            if (italic) {
+                result.append(org.bukkit.ChatColor.ITALIC);
+            }
+            result.append(text.charAt(i));
+        }
+        return result.toString();
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("fire", "bats", "lightning", "starfall", "frost", "soul", "vortex");
+            return Arrays.asList("menu", "fire", "bats", "lightning", "starfall", "frost", "soul", "ascension");
         }
         if (args.length == 2 && sender.hasPermission("vanisheffects.others")) {
             List<String> names = new ArrayList<>();
@@ -219,8 +394,8 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 playFrostEffect(player);
             } else if (style == Style.SOUL) {
                 playSoulEffect(player);
-            } else if (style == Style.VORTEX) {
-                playVortexEffect(player);
+            } else if (style == Style.ASCENSION) {
+                playAscensionEffect(player);
             }
         }
     }
@@ -261,8 +436,8 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
             case SOUL:
                 playSoulEffect(player);
                 break;
-            case VORTEX:
-                playVortexEffect(player);
+            case ASCENSION:
+                playAscensionEffect(player);
                 break;
         }
     }
@@ -486,35 +661,53 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    /** Вокруг игрока закручивается портальный вихрь из двух спиральных рукавов, который стягивается внутрь и лопается. */
-    private void playVortexEffect(Player player) {
+    /**
+     * Кинематографичный эффект "Вознесение" в три акта:
+     * 1) вокруг игрока по спирали поднимается драконье дыхание,
+     * 2) рык дракона + взрыв, ударная кольцевая волна по земле и столб света в небо,
+     * 3) финальный залп искр фейерверка.
+     */
+    private void playAscensionEffect(Player player) {
         World world = player.getWorld();
         Location base = player.getLocation().add(0, 1, 0);
-        world.playSound(base, Sound.BLOCK_PORTAL_TRAVEL, 1.0f, 0.8f);
+        world.playSound(base, Sound.ENTITY_ENDER_DRAGON_FLAP, 1.0f, 0.8f);
 
         JavaPlugin plugin = this;
         new BukkitRunnable() {
             int tick = 0;
-            final int totalTicks = 16;
+            final int riseTicks = 20;
 
             @Override
             public void run() {
-                if (tick > totalTicks) {
-                    world.spawnParticle(Particle.PORTAL, base, 80, 0.4, 0.6, 0.4, 0.3);
-                    world.spawnParticle(Particle.REVERSE_PORTAL, base, 40, 0.3, 0.5, 0.3, 0.05);
-                    world.playSound(base, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1.0f, 1.0f);
+                if (tick > riseTicks) {
+                    world.playSound(base, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);
+                    world.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.1f);
+
+                    for (int i = 0; i < 36; i++) {
+                        double angle = 2 * Math.PI * i / 36;
+                        double x = base.getX() + 3.0 * Math.cos(angle);
+                        double z = base.getZ() + 3.0 * Math.sin(angle);
+                        world.spawnParticle(Particle.CRIT_MAGIC, new Location(world, x, base.getY() - 1, z), 3, 0.1, 0.1, 0.1, 0.02);
+                    }
+
+                    for (int h = 0; h < 12; h++) {
+                        world.spawnParticle(Particle.END_ROD, base.clone().add(0, h * 0.6, 0), 4, 0.1, 0.1, 0.1, 0.01);
+                    }
+
+                    world.spawnParticle(Particle.FIREWORKS_SPARK, base, 120, 0.7, 1.0, 0.7, 0.25);
+                    world.playSound(base, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.0f);
                     cancel();
                     return;
                 }
-                double progress = (double) tick / totalTicks;
-                double radius = 1.2 * (1 - progress) + 0.1;
-                double angle = tick * 0.8;
-                double height = progress * 1.6;
-                for (int arm = 0; arm < 2; arm++) {
-                    double a = angle + arm * Math.PI;
-                    double x = base.getX() + radius * Math.cos(a);
-                    double z = base.getZ() + radius * Math.sin(a);
-                    world.spawnParticle(Particle.PORTAL, new Location(world, x, base.getY() + height, z), 3, 0.03, 0.05, 0.03, 0.02);
+
+                double progress = (double) tick / riseTicks;
+                double height = progress * 2.2;
+                double radius = 0.6;
+                for (int arm = 0; arm < 3; arm++) {
+                    double angle = tick * 0.5 + arm * (2 * Math.PI / 3);
+                    double x = base.getX() + radius * Math.cos(angle);
+                    double z = base.getZ() + radius * Math.sin(angle);
+                    world.spawnParticle(Particle.DRAGON_BREATH, new Location(world, x, base.getY() + height, z), 3, 0.03, 0.03, 0.03, 0.01);
                 }
                 tick++;
             }
