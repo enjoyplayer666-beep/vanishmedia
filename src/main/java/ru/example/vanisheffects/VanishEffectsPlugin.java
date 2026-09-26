@@ -437,7 +437,7 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
                 if (tick > totalTicks) {
                     world.playSound(center, Sound.BLOCK_GLASS_BREAK, 1.0f, 0.9f);
                     world.spawnParticle(Particle.SNOWFLAKE, center, 100, 0.6, 1.0, 0.6, 0.15);
-                    world.spawnParticle(Particle.ITEM_SNOWBALL, center, 30, 0.5, 0.9, 0.5, 0.08);
+                    world.spawnParticle(Particle.SNOWBALL, center, 30, 0.5, 0.9, 0.5, 0.08);
                     cancel();
                     return;
                 }
