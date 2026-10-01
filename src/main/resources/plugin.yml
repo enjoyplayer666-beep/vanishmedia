@@ -8,6 +8,8 @@ authors: [ your-name ]
 commands:
   v:
     description: Включить/выключить ваниш или открыть меню выбора эффекта.
+    # без права команда скрыта от игрока (нет в подсказках) и не выполняется
+    permission: vanisheffects.use
     usage: |
       /v — переключить ваниш последним стилем
       /v <fire|bats|lightning|starfall|frost|soul|vortex> [игрок] — включить с конкретным стилем

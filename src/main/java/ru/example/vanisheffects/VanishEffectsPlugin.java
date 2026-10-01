@@ -201,6 +201,9 @@ public class VanishEffectsPlugin extends JavaPlugin implements CommandExecutor, 
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!sender.hasPermission("vanisheffects.use") && !sender.hasPermission("vanisheffects.others")) {
+            return new ArrayList<>();
+        }
         if (args.length == 1) {
             return Arrays.asList("menu", "fire", "bats", "lightning", "starfall", "frost", "soul", "vortex");
         }
